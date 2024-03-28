@@ -1,57 +1,61 @@
-class User:
-    def __init__(self, id, first_name, second_name, email, password):
-        self.id = id
-        self.first_name = first_name
-        self.second_name = second_name
-        self.email = email
-        self.password = password
+USER_SCHEME = ("id", "first_name", "second_name", "email", "password")
+RECORD_SCHEME = ("id", "date", "content", "user_id", "title")
+users = []
+records = []
+DATABASE = []
 
-class Record:
-    def __init__(self, id, date, content, user, title):
-        self.id = id
-        self.date = date
-        self.content = content
-        self.user = user
-        self.title = title
+def parse_record(entity, record_str, entity_scheme):
+    record_str = record_str.strip()
+    if record_str.startswith(entity):
+        record_str = record_str[len(entity):].strip()
+    record_dict = {}
+    for field in record_str.split(','):
+        key, value = field.split('=')
+        key = key.strip()
+        value = value.strip()
+        if key in entity_scheme:
+            record_dict[key] = value
+    return record_dict
 
-class Database:
-    def __init__(self):
-        self.users = []
-        self.records = []
+def create_record(entity, record_str, entity_scheme, user_id):
+    global DATABASE
+    try:
+        record_dict = parse_record(entity, record_str, entity_scheme)
+        record_dict['user_id'] = user_id
+        DATABASE.append(record_dict)
+        print(f"{entity} створено успішно")
+    except Exception as err:
+        print(f"Помилка при створенні {entity}: {err}")
 
-    def add_user(self, user):
-        self.users.append(user)
+def search_entity_by_id(entity_name, entity_id):
+    global DATABASE
+    for entity in DATABASE:
+        if str(entity.get('id')) == entity_id:
+            print(f"Знайдено {entity_name}: {entity}")
+            return
+    print(f"{entity_name} з id {entity_id} не знайдено")
 
-    def add_record(self, record):
-        self.records.append(record)
+def search_entity_by_name(entity_name, entity_field, entity_value):
+    global DATABASE
+    found = False
+    for entity in DATABASE:
+        if entity.get(entity_field) == entity_value:
+            print(f"Знайдено {entity_name}: {entity}")
+            found = True
+    if not found:
+        print(f"{entity_name} з {entity_field} '{entity_value}' не знайдено")
 
-    def search_user_by_id(self, user_id):
-        for user in self.users:
-            if str(user.id) == user_id:
-                return user
-        return None
-
-    def search_user_by_email(self, email):
-        for user in self.users:
-            if user.email == email:
-                return user
-        return None
-
-    def search_record_by_id(self, record_id):
-        for record in self.records:
-            if str(record.id) == record_id:
-                return record
-        return None
-
-    def search_record_by_title(self, title):
-        for record in self.records:
-            if record.title == title:
-                return record
-        return None
+def delete_entity_by_id(entity_name, entity_id):
+    global DATABASE
+    for idx, entity in enumerate(DATABASE):
+        if str(entity.get('id')) == entity_id:
+            del DATABASE[idx]
+            print(f"{entity_name} з id {entity_id} видалено успішно")
+            return
+    print(f"{entity_name} з id {entity_id} не знайдено")
 
 def main():
-    database = Database()
-
+    global DATABASE
     while True:
         print("\nМеню:")
         print("1.Створити запис")
@@ -60,54 +64,38 @@ def main():
         print("4.Пошук користувача за електронною адресою")
         print("5.Пошук запису за id")
         print("6.Пошук запису за назвою")
+        print("7.Видалити запис за id")
         choice = input("Виберіть дію: ")
-
         if choice == "1":
-            record_data = input("Введіть дані для нового запису (id, date, content, user, title): ")
-            record = Record(*record_data.split(', '))
-            database.add_record(record)
-            print("Запис створено успішно")
-
+            entity = "Record"
+            record_str = input("Введіть дані для нового запису: ")
+            user_id = input("Введіть id користувача для прив'язки запису: ")
+            create_record(entity, record_str, RECORD_SCHEME, user_id)
         elif choice == "2":
-            user_data = input("Введіть дані для нового користувача (id, first_name, second_name, email, password): ")
-            user = User(*user_data.split(', '))
-            database.add_user(user)
-            print("Користувача створено успішно")
-
+            entity = "User"
+            record_str = input("Введіть дані для нового користувача: ")
+            create_record(entity, record_str, USER_SCHEME, "")
         elif choice == "3":
-            user_id = input("Введіть id користувача: ")
-            user = database.search_user_by_id(user_id)
-            if user:
-                print(f"Знайдено користувача: {user.__dict__}")
-            else:
-                print(f"Користувача з id {user_id} не знайдено")
-
+            entity_id = input("Введіть id користувача: ")
+            search_entity_by_id("Користувач", entity_id)
         elif choice == "4":
             email = input("Введіть електронну адресу користувача: ")
-            user = database.search_user_by_email(email)
-            if user:
-                print(f"Знайдено користувача: {user.__dict__}")
-            else:
-                print(f"Користувача з електронною адресою {email} не знайдено")
-
+            search_entity_by_name("Користувач", "email", email)
         elif choice == "5":
-            record_id = input("Введіть id запису: ")
-            record = database.search_record_by_id(record_id)
-            if record:
-                print(f"Знайдено запис: {record.__dict__}")
-            else:
-                print(f"Запис з id {record_id} не знайдено")
-
+            entity_id = input("Введіть id запису: ")
+            search_entity_by_id("Запис", entity_id)
         elif choice == "6":
             title = input("Введіть назву запису: ")
-            record = database.search_record_by_title(title)
-            if record:
-                print(f"Знайдено запис: {record.__dict__}")
-            else:
-                print(f"Запис з назвою {title} не знайдено")
-
+            search_entity_by_name("Запис", "title", title)
+        elif choice == "7":
+            entity_id = input("Введіть id запису для видалення: ")
+            delete_entity_by_id("Запис", entity_id)
         else:
             print("Невідома цифра")
 
 if __name__ == "__main__":
+    for user in users:
+        create_record("User", user, USER_SCHEME, "")
+    for record in records:
+        create_record("Record", record, RECORD_SCHEME, "")
     main()
